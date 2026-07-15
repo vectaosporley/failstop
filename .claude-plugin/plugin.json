@@ -1,0 +1,21 @@
+{
+  "name": "failstop",
+  "displayName": "Failstop",
+  "version": "0.1.0",
+  "description": "Fail-stop semantics for coding agents. Hooks that make known failure modes impossible, not improbable.",
+  "author": {
+    "name": "Rafael Porley",
+    "url": "https://github.com/porleyrafael"
+  },
+  "repository": "https://github.com/porleyrafael/failstop",
+  "license": "MIT",
+  "keywords": [
+    "hooks",
+    "guardrails",
+    "fail-stop",
+    "agent-safety",
+    "tool-reputation"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "skills": "./skills/"
+}

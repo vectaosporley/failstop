@@ -1,0 +1,14 @@
+{
+  "name": "failstop-marketplace",
+  "owner": {
+    "name": "Rafael Porley",
+    "url": "https://github.com/porleyrafael"
+  },
+  "plugins": [
+    {
+      "name": "failstop",
+      "source": "./",
+      "description": "Fail-stop semantics for coding agents: hooks that make known failure modes impossible, not improbable."
+    }
+  ]
+}

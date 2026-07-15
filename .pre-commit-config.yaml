@@ -1,0 +1,17 @@
+# The real gate is here, local. CI (below) is the backstop.
+# Install:  pip install pre-commit && pre-commit install
+repos:
+  - repo: local
+    hooks:
+      - id: failstop-leak-guard
+        name: failstop boundary guard
+        entry: python scripts/check_leak.py --require-patterns --redact
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: failstop-tests
+        name: failstop tests
+        entry: python -m pytest tests/ -q
+        language: system
+        pass_filenames: false
+        always_run: true

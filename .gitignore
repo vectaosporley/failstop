@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+.venv/
+node_modules/
+.pytest_cache/
+
+# The mechanism is public. The data it accumulates is not.
+memory.json
+*.db
+*.corrupt-*
+.env
+.env.*
+*.key
+*.pem
+
+# The local pattern list must never be committed. The blocklist is the disclosure.
+*patterns*.private.txt
+.failstop/
+.claude/settings.json
+_e2e/

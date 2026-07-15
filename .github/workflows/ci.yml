@@ -1,0 +1,20 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.10", "3.11", "3.12"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install pytest pyyaml
+      # CI runs the guard with GENERIC patterns only. The private pattern list is
+      # never committed and never present in CI. The real gate is the local pre-commit.
+      - run: python scripts/check_leak.py
+      - run: python scripts/check_leak.py --self-test
+      - run: python -m pytest tests/ -q
