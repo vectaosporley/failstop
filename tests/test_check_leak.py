@@ -30,7 +30,9 @@ def scan(text, patterns=None):
 GENERIC_LEAKS = [
     "C:" + chr(92) + "Users" + chr(92) + "someone",
     "/home/someone/thing",
-    "/sessions/aaa-bbb-ccc/mnt",
+    "/sessions/aaa-bbb-ccc/mnt",          # three-word id
+    "/sessions/abc-def-123/mnt",          # id with a numeric segment
+    "/sessions/local_ffe07f2a-251d-455d", # hex/uuid blob, underscore + dash
     "someone@" + "gmail.com",
     "KEY=" + "gsk_" + "abcdefghijklmnop",
     "password = " + repr("hunter2hunter2hunter2"),
@@ -40,6 +42,16 @@ GENERIC_LEAKS = [
 @pytest.mark.parametrize("line", GENERIC_LEAKS)
 def test_generic_detects(line):
     assert scan(line), f"guard missed: {line!r}"
+
+
+def test_session_path_shapes_all_caught():
+    """The original pattern only matched three lowercase words and let every numeric or
+    hex session id through — about half of the real ones. A guard that catches only the
+    tidy example is the guard that was inert; this pins the messy shapes it must also catch."""
+    for real in ("/sessions/sleepy-great-thompson/mnt/outputs",
+                 "/sessions/abc-def-123/mnt",
+                 "/sessions/local_ffe07f2a-251d-455d-9edf/uploads"):
+        assert scan(real), f"session path slipped through: {real}"
 
 
 LEGIT = [

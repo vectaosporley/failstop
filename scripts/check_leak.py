@@ -37,7 +37,12 @@ Pattern = Tuple[str, str]
 GENERIC: List[Pattern] = [
     ("absolute machine path (windows)", r"[A-Za-z]:\\+Users\\+[A-Za-z0-9_.-]+"),
     ("absolute machine path (unix)", r"/(?:home|Users)/[A-Za-z0-9_.-]{2,}"),
-    ("ephemeral session path", r"/sessions/[a-z]+-[a-z]+-[a-z]+"),
+    # A session id can be three words (sleepy-great-thompson) OR a hex/uuid blob
+    # (local_ffe07f2a-251d-455d). The first version only matched three lowercase words and
+    # let every numeric-suffixed real path through — half of them. Match any id-shaped
+    # segment: letters, digits, _ and -, at least one separator so a bare "/sessions/x" alone
+    # does not trip.
+    ("ephemeral session path", r"/sessions/[A-Za-z0-9_]+[-_][A-Za-z0-9_-]+"),
     ("personal email", r"[a-zA-Z0-9._%+-]+@(?:gmail|hotmail|outlook|yahoo|protonmail)\.[a-z]{2,}"),
     ("credential-shaped token", r"\b(?:gsk_|sk-|AIza|ghp_|xox[baprs]-)[A-Za-z0-9_\-]{8,}"),
     ("secret in assignment", r"(?i)\b(?:api[_-]?key|secret|token|password)\s*[:=]\s*['\"][^'\"\s]{12,}"),

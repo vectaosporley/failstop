@@ -65,12 +65,29 @@ def test_a_different_path_same_shape_is_still_blocked(tmp_path):
     assert denied(out), "shape, not string — a retry with a new path is the same attempt"
 
 
-def test_gate_allows_a_shape_that_ever_succeeded(tmp_path):
-    run(REC, bash_post("npm test"), tmp_path)                 # one success
-    for _ in range(5):
-        run(REC, bash_post("npm test", error="flaky"), tmp_path)
+def test_gate_never_stops_a_fix_cycle(tmp_path):
+    """`npm test` failing five times while the code gets fixed is the job, not a malfunction.
+
+    This test used to assert that an earlier success granted immunity, which protected this
+    case by accident and everything else by mistake. What actually deserves protection is the
+    learning: five failures that each say something different are progress, and the gate must
+    stay out of the way no matter how many there are.
+    """
+    run(REC, bash_post("npm test"), tmp_path)                 # it worked once, long ago
+    for msg in ("3 failed: auth, db, api", "2 failed: db, api", "1 failed: api",
+                "1 failed: api timeout", "1 failed: api returns 500"):
+        run(REC, bash_post("npm test", error=msg), tmp_path)
+        code, out, _ = run(GATE, bash_pre("npm test"), tmp_path)
+        assert not denied(out), f"blocked a fix cycle after: {msg}"
+
+
+def test_gate_stops_the_same_failure_repeating_even_after_a_success(tmp_path):
+    """The mirror: an old success is not an alibi for a command that is now simply broken."""
+    run(REC, bash_post("npm test"), tmp_path)                 # it worked once, long ago
+    for _ in range(3):
+        run(REC, bash_post("npm test", error="Cannot find module 'jest'"), tmp_path)
     code, out, _ = run(GATE, bash_pre("npm test"), tmp_path)
-    assert not denied(out), "a shape that has ever worked is suspect, not blocked"
+    assert denied(out), "identical failures since it last worked are a loop, success or no success"
 
 
 def test_gate_allows_unknown_command(tmp_path):
@@ -89,7 +106,7 @@ def test_recorded_fix_is_quoted_in_denial(tmp_path):
     importlib.reload(memory)
     for _ in range(3):
         memory.record("Bash", memory.normalize_shape("foo --bar"), ok=False,
-                      fix="use --baz instead")
+                      fix="use --baz instead", error="unknown flag: --bar")
     code, out, _ = run(GATE, bash_pre("foo --bar"), tmp_path)
     assert denied(out)
     reason = json.loads(out)["hookSpecificOutput"]["permissionDecisionReason"]

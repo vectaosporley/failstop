@@ -36,8 +36,23 @@ REASON = (
 )
 
 
+def _witness(action: str, detail: str = "") -> None:
+    """Put the attempt on the record. Never let the recording change the decision.
+
+    This is the one hook that fails CLOSED, so the rule has to be stated carefully: the ledger
+    is not allowed to make it fail closed either. If the record cannot be written, the denial
+    still stands — the denial is the safety, the entry is only the memory of it.
+    """
+    try:
+        import ledger
+        ledger.append("tool:protect_canon", action, detail)
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def deny(reason: str) -> int:
     """Deny via the documented PreToolUse decision object. Exit 0 — the hook itself succeeded."""
+    _witness("refused a write to protected code", reason[:200])
     json.dump({
         "hookSpecificOutput": {
             "hookEventName": "PreToolUse",

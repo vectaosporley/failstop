@@ -57,25 +57,36 @@ def test_success_is_actually_stored(mem):
 
 # ── the reputation verdict (input for the Phase 4 gate) ───────────────────────
 
-def test_verdict_trusted_then_suspect_then_blocked(mem, monkeypatch):
-    monkeypatch.setenv("FAILSTOP_BLOCK_AFTER", "3")
-    importlib.reload(mem)
+def test_verdict_unknown_then_trusted_then_blocked(mem):
     assert mem.check("Bash", "x")["verdict"] == "unknown"
     mem.record("Bash", "x", ok=True)
     assert mem.check("Bash", "x")["verdict"] == "trusted"
-    for _ in range(3):
-        mem.record("Bash", "y", ok=False)
-    assert mem.check("Bash", "y")["verdict"] == "blocked"
+    for _ in range(2):
+        mem.record("Bash", "y", ok=False, error="permission denied")
+    assert mem.check("Bash", "y")["verdict"] == "blocked"   # same error twice = proven loop
 
 
-def test_a_shape_that_ever_succeeded_is_not_blocked(mem, monkeypatch):
-    monkeypatch.setenv("FAILSTOP_BLOCK_AFTER", "2")
-    importlib.reload(mem)
+def test_a_shape_that_ever_succeeded_is_not_immune(mem):
+    """This test asserted the opposite until the immunity it protected was measured.
+
+    The old rule was 'ever succeeded -> never blocked', which sounds cautious and is not: a
+    command that worked once in January and has failed identically every day since was waved
+    through forever, and since nearly every command succeeds once early on, nearly nothing
+    could ever be blocked. What the old rule was really protecting is a fix cycle — and that
+    is protected properly now by novelty, not by a lifetime alibi. See
+    test_a_fix_cycle_is_never_blocked_however_long in test_gate_recency.py.
+    """
     mem.record("Bash", "z", ok=True)
     for _ in range(5):
-        mem.record("Bash", "z", ok=False)
-    # it has succeeded before, so it is suspect, not blocked
-    assert mem.check("Bash", "z")["verdict"] == "suspect"
+        mem.record("Bash", "z", ok=False, error="the endpoint is gone")
+    assert mem.check("Bash", "z")["verdict"] == "blocked"
+
+
+def test_failing_differently_every_time_is_never_blocked(mem):
+    """The other half of the same rule: a search must not be mistaken for a loop."""
+    for i in range(6):
+        mem.record("Bash", "w", ok=False, error=f"failure number {i} is a new one")
+    assert mem.check("Bash", "w")["verdict"] == "suspect"
 
 
 # ── durability ────────────────────────────────────────────────────────────────
@@ -84,7 +95,7 @@ def test_corrupt_store_is_quarantined_not_raised(mem, tmp_path):
     mem.STORE.parent.mkdir(parents=True, exist_ok=True)
     mem.STORE.write_text("{ broken", encoding="utf-8")
     db = mem.load()                     # must not raise
-    assert db == {"tools": {}, "log": []}
+    assert db == mem.EMPTY, "a damaged store loads as a fresh one, whatever the schema is"
     quarantined = list(tmp_path.glob("memory.json.corrupt-*"))
     assert quarantined, "the corrupt store should have been set aside"
 
@@ -97,7 +108,7 @@ def test_write_leaves_no_tmp_files(mem, tmp_path):
 def test_non_dict_store_ignored(mem):
     mem.STORE.parent.mkdir(parents=True, exist_ok=True)
     mem.STORE.write_text("[1, 2, 3]", encoding="utf-8")
-    assert mem.load() == {"tools": {}, "log": []}
+    assert mem.load() == mem.EMPTY
 
 
 def test_log_is_capped(mem):

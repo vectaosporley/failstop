@@ -8,6 +8,12 @@ derail a session.
 
 Success/failure is read from `tool_response`: an `error` field, or `status == "error"`,
 means failure. Absent both, success.
+
+It also records WHAT the tool said, not just that it spoke. The reputation gate decides by
+comparing an error against the earlier errors of the same command shape — a run of different
+errors is a fix cycle and must be left alone, a repeated error is a loop and must be stopped.
+An earlier version of this hook threw the error text away and kept only the boolean, which
+left the gate with nothing to compare and reduced it to counting attempts. See memory.py.
 """
 from __future__ import annotations
 
@@ -37,6 +43,23 @@ def _failed(tool_response) -> bool:
     return False
 
 
+def _error_text(tool_response) -> str:
+    """What the tool actually said. The gate decides by comparing this against the previous
+    failures of the same shape, so discarding it — which this hook used to do — left the
+    memory able to say only THAT something failed, never HOW. A count of failures cannot tell
+    a fix cycle from a loop; only the words can."""
+    # The tail, for the same reason normalize_error keeps the tail: an error's payload is at
+    # the end. Truncating from the front hands the signature a header that never changes, and
+    # a signature that never changes blocks a fix cycle. Measured; see memory.normalize_error.
+    if not isinstance(tool_response, dict):
+        return str(tool_response or "")[-600:]
+    for field in ("error", "stderr", "message", "stdout", "output", "result"):
+        val = tool_response.get(field)
+        if val:
+            return str(val)[-600:]
+    return ""
+
+
 def main() -> int:
     raw = sys.stdin.read()
     if not raw.strip():
@@ -64,14 +87,15 @@ def main() -> int:
     except ImportError:
         return 0
 
-    ok = not _failed(event.get("tool_response"))
+    response = event.get("tool_response")
+    ok = not _failed(response)
     shape = memory.normalize_shape(_shape_source(tool, tool_input))
-    fix = ""
-    if not ok:
-        tr = event.get("tool_response")
-        fix = ""  # a human/agent adds the fix later via the learning loop; we record the failure now
+    # the fix is added later by the agent or a human via the learning loop; the failure and
+    # what it said are recorded now, while they exist.
+    error = "" if ok else _error_text(response)
     try:
-        memory.record(tool, shape, ok=ok, fix=fix, context=_shape_source(tool, tool_input))
+        memory.record(tool, shape, ok=ok, fix="", error=error,
+                      context=_shape_source(tool, tool_input))
     except Exception as exc:  # noqa: BLE001
         print(f"record_outcome (non-fatal): {type(exc).__name__}: {exc}", file=sys.stderr)
     return 0

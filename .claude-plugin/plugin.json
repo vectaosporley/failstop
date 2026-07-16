@@ -1,10 +1,11 @@
 {
   "name": "failstop",
   "displayName": "Failstop",
-  "version": "0.1.0",
-  "description": "Fail-stop semantics for coding agents. Hooks that make known failure modes impossible, not improbable.",
+  "version": "0.2.0",
+  "description": "Fail-stop semantics for coding agents. Hooks that make known failure modes impossible, not improbable. Built while making VECTA.",
   "author": {
     "name": "Rafael Porley",
+    "organization": "VECTA",
     "url": "https://github.com/porleyrafael"
   },
   "repository": "https://github.com/porleyrafael/failstop",

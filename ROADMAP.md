@@ -260,7 +260,7 @@ Three. Not thirty.
 
 ---
 
-## Phase 12 — The publication gate  ✅ DONE (pre-git)
+## Phase 12 — The publication gate  ✅ DONE — caught a real leak in git history, amended it away
 
 Run once, before the repository is ever made public. Then again before every release.
 
@@ -279,7 +279,7 @@ Run once, before the repository is ever made public. Then again before every rel
 
 ---
 
-## Phase 13 — Release 0.1.0
+## Phase 13 — Release 0.1.0  ✅ git repo initialized, tagged v0.1.0, history clean. Push pending (needs GitHub auth).
 
 - [ ] **13.1** Tag, changelog, a README that promises only what the code does.
 - [ ] **13.2** Remove every "coming soon" from the README. Ship the subset that works.

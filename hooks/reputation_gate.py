@@ -2,13 +2,23 @@
 # -*- coding: utf-8 -*-
 """reputation_gate.py — PreToolUse hook enforcing FS-007.
 
-Do not repeat an attempt that has already failed. If this tool has failed on this exact
-command SHAPE `FAILSTOP_BLOCK_AFTER` times and never succeeded on it, deny — and quote the
-recorded fix, so the agent changes strategy instead of retrying blind.
+Do not repeat an attempt that has already failed — where REPEAT means same command and same
+result. If this shape's newest failure carries an error it already produced since it last
+worked, deny: that attempt added no information, which is the definition of a loop.
 
-Below the threshold it is advisory (allow, but the memory still knows). This hook only ever
-blocks on a well-corroborated, repeated, never-successful failure. Erring toward blocking
-fails stopped; erring toward permitting fails wrong (FS-002).
+There is no attempt limit, deliberately. Two earlier versions both counted, and both were
+wrong. The first blocked anything that had failed N times and never succeeded, which meant a
+command that had ever worked once was immune forever (most commands work once, so the gate
+was nearly inert) while a command that never worked was condemned forever with no way back —
+the block prevented the very success that would clear it. The second counted failures since
+the last success, which stops `npm test` on its third honest failure, exactly when a fix
+cycle needs it most. The count was always a proxy for a question it could not ask: is this
+attempt learning anything? Ask that instead. Ten failures with ten different errors is
+progress and must not be touched. Two identical failures is a circle.
+
+While the errors keep changing it is advisory (allow, but the memory still knows). Erring
+toward blocking fails stopped; erring toward permitting fails wrong (FS-002) — and a failure
+with no captured error can never be compared, so it can never be blocked.
 
 Fails closed on confusion is NOT appropriate here: unlike the canon guard, a false block
 would stop legitimate work. So this hook fails OPEN — if it cannot read memory or parse the
@@ -67,14 +77,38 @@ def main() -> int:
 
     if verdict["verdict"] == "blocked":
         fix = verdict["last_fix"]
-        reason = (f"FS-007: this command shape has failed {verdict['fail']} times and never "
-                  f"succeeded. Retrying it unchanged will fail again.")
+        run = verdict.get("run", 0)
+        repeated = str(verdict.get("repeated", ""))[:200]
+        reason = (f"FS-007: this command shape has failed {run} times since it last worked, and "
+                  f"the last attempt produced an error you had already hit — so it taught you "
+                  f"nothing. That is the loop, not a bad streak. The error repeating is: "
+                  f"{repeated}")
         if fix:
-            reason += f" Recorded fix: {fix}"
+            reason += f" | Recorded fix: {fix}"
         else:
-            reason += " Change the approach before trying again."
+            reason += (" | You are not blocked for failing. You are blocked for failing the "
+                       "SAME way twice. Change something that could change the error.")
+        # The block is self-sealing: it stops the command, so the command can never produce the
+        # success that would lift it. Naming the way out is part of the block, not a footnote.
+        reason += (" If you have already fixed the root cause, release this shape with: "
+                   f"python scripts/memory.py clear --tool {event['tool_name']} "
+                   f"--shape {json.dumps(shape)}")
+        _witness("gate blocked a proven loop", f"{event['tool_name']}: {shape[:100]} | {repeated[:80]}")
         return deny(reason)
     return allow()
+
+
+def _witness(action: str, detail: str = "") -> None:
+    """Put the block on the record — and never let recording it become a reason to fail open.
+
+    This hook decides whether work proceeds; the ledger only remembers. If the two ever
+    conflict, the ledger yields (FS-012).
+    """
+    try:
+        import ledger
+        ledger.append("tool:reputation_gate", action, detail)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 if __name__ == "__main__":
