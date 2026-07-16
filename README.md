@@ -237,6 +237,27 @@ rejected anything has never been tested; this one has rejected its own author's 
 
 ---
 
+## Contributing
+
+Bug reports are the most useful thing you can send. This project is built from measured failure
+modes, so a reproduction is worth more than a description — the whole design principle is that a
+claim which indicts a tool must be confirmed through a channel that tool did not produce.
+
+Before opening a pull request:
+
+```bash
+python -m pytest tests/ -q                 # the full suite must be green
+python scripts/check_leak.py --self-test   # the boundary guard must pass
+```
+
+A new rule should come with a test that fails without it — a rule with no reproduction is a
+proposal, not a rule (FS-009). And a hook or guard should be tested on the input where the bug
+*would* appear, not the tidy one: every guard in this repo was too wide on its first draft, and
+the ones that shipped clean are the ones whose tests attacked them.
+
+Runs on any platform Claude Code runs on. Developed and verified on Windows (Python 3.11); the
+hooks use `python`, not `python3`, because `python3` does not exist there.
+
 ---
 
 ## Credits
@@ -250,3 +271,8 @@ been made impossible instead of merely discouraged.
 ## License
 
 MIT
+
+---
+
+<sub>If failstop saved you a debugging session, you can support its development via the **Sponsor**
+button above. Entirely optional — bug reports are worth just as much.</sub>
