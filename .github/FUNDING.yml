@@ -1,13 +1,5 @@
-# Muestra el boton "Sponsor" arriba del repo en GitHub.
-# Descomenta y completa SOLO las lineas que uses. Borra las demas.
-#
-#   github:          tu usuario de GitHub Sponsors (requiere alta en github.com/sponsors)
-#   ko_fi:           tu nombre de usuario en ko-fi.com  (ej: rafaelporley  ->  ko_fi: rafaelporley)
-#   buy_me_a_coffee: tu usuario en buymeacoffee.com
-#   custom:          cualquier URL (PayPal, tu web, etc.) — una o varias entre corchetes
-#
-# Ejemplos (elegi uno o combina):
-
-# github: porleyrafael
-# ko_fi: porleyrafael
-# custom: ["https://www.paypal.me/porleyrafael"]
+# Shows the "Sponsor" button at the top of the repo.
+# Cafecito is an Argentine donation platform; GitHub has no native key for it,
+# so it goes in `custom` as a plain URL. Add more lines here later if you want
+# (github: for GitHub Sponsors, ko_fi:, etc.).
+custom: ["https://cafecito.app/vecta"]
