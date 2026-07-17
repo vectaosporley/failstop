@@ -16,7 +16,10 @@ on:
 
 permissions:
   contents: read
-  administration: read      # necesario para leer trafico (vistas/clones)
+  # Ojo: NO existe un permiso "administration" para el GITHUB_TOKEN de Actions.
+  # La API de trafico (vistas/clones) pide acceso de push/admin al repo, y el token
+  # efimero de Actions puede no alcanzar. Si no alcanza, esas dos lineas salen
+  # "(sin dato)" y el resto del reporte se manda igual. Medido, no supuesto.
 
 concurrency:
   group: reportero
