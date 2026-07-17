@@ -10,8 +10,14 @@ name: reportero
 on:
   schedule:
     # GitHub usa UTC. Argentina es UTC-3.
-    - cron: "0 12 * * *"   # 12:00 UTC = 09:00 en Argentina
-    - cron: "0 0 * * *"    # 00:00 UTC = 21:00 en Argentina
+    #
+    # MEDIDO el 2026-07-17: con "0 12 * * *" la corrida NO disparo. Dos horas despues del
+    # horario seguia sin existir (ni siquiera como 'queued'). El scheduler de Actions es de
+    # MEJOR ESFUERZO, no una garantia, y el minuto 0 es el mas congestionado del planeta:
+    # todo el mundo agenda en punto. GitHub mismo recomienda evitarlo.
+    # Por eso: minuto 23. No tiene nada de magico, solo que casi nadie lo elige.
+    - cron: "23 12 * * *"   # 12:23 UTC = 09:23 en Argentina
+    - cron: "23 0 * * *"    # 00:23 UTC = 21:23 en Argentina
   workflow_dispatch: {}     # boton "Run workflow" para probar a mano
 
 permissions:
