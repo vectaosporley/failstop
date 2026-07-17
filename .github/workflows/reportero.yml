@@ -1,0 +1,50 @@
+# Reportero de failstop: manda stats (estrellas, forks, vistas, clones, cafecitos)
+# al Telegram del mantenedor, dos veces al dia. Corre en los servidores de GitHub,
+# asi que no depende de que ninguna PC este prendida.
+#
+# Los secretos TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID se cargan en:
+#   Settings -> Secrets and variables -> Actions -> New repository secret
+# Nada sensible vive en este archivo.
+name: reportero
+
+on:
+  schedule:
+    # GitHub usa UTC. Argentina es UTC-3.
+    - cron: "0 12 * * *"   # 12:00 UTC = 09:00 en Argentina
+    - cron: "0 0 * * *"    # 00:00 UTC = 21:00 en Argentina
+  workflow_dispatch: {}     # boton "Run workflow" para probar a mano
+
+permissions:
+  contents: read
+  administration: read      # necesario para leer trafico (vistas/clones)
+
+concurrency:
+  group: reportero
+  cancel-in-progress: false
+
+jobs:
+  reportar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Restaura el estado del reporte anterior para poder mostrar la variacion (+N).
+      # Es best-effort: si no hay cache, el reporte sale igual, solo sin el "(+N)".
+      - name: restaurar estado
+        uses: actions/cache@v4
+        with:
+          path: .github/reportero/estado.json
+          key: reportero-estado-${{ github.run_id }}
+          restore-keys: |
+            reportero-estado-
+
+      - name: correr reportero
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GH_API_TOKEN: ${{ github.token }}
+        run: python .github/reportero/reportero_cloud.py

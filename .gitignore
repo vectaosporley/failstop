@@ -7,6 +7,9 @@ node_modules/
 # The mechanism is public. The data it accumulates is not.
 memory.json
 *.db
+
+# Estado runtime del reportero: se regenera en cada corrida (cache de Actions). No se versiona.
+.github/reportero/estado.json
 *.corrupt-*
 .env
 .env.*
