@@ -49,5 +49,8 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          GH_API_TOKEN: ${{ github.token }}
+          # GH_PAT es una llave fina (solo failstop, solo lectura) que SI puede leer
+          # el trafico. Si no esta cargada, cae al token de Actions y vistas/clones
+          # salen "(sin dato)" -- el resto del reporte se manda igual.
+          GH_API_TOKEN: ${{ secrets.GH_PAT || github.token }}
         run: python .github/reportero/reportero_cloud.py
